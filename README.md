@@ -11,7 +11,7 @@ Simple bus tracker with Mapbox Api
 Clone this repository and run index.html. There are no third party dependencies.
 
 ### Roadmap to Future Improvements
-This application will likely be restructure as a component for React App.
+This application will likely be restructured as a component for React App.
 
 ### License
 
