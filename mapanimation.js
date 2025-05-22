@@ -11,6 +11,9 @@ let map = new mapboxgl.Map({
 const marker = new mapboxgl.Marker();
 marker.setLngLat([-71.093729, 42.359244]).addTo(map);
 
+// Store the timeout id so the animation can be cancelled
+let timerId = null;
+
 
 //Layer elements
     const layerList = document.getElementById('menu');
@@ -44,22 +47,30 @@ marker.setLngLat([-71.093729, 42.359244]).addTo(map);
 var counter = 0;
 
 function reset(){
-    clearTimeout(move());
+    // stop any pending animation
+    if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+    }
     counter = 0;
     marker.setLngLat(busStops[counter]);
-}
-function move() {
-    //disable the button
-    document.getElementById('MIT_path').disabled = true;
-    // Use counter to access bus stops in the array busStops
-    loop = true;
-    if (loop) {
-        setTimeout(() => {
-            if (counter >= busStops.length) return;
-            marker.setLngLat(busStops[counter]);
-            counter++;
-            move();
-        }, 500);
-    }
+    // allow the user to start the animation again
     document.getElementById('MIT_path').disabled = false;
+}
+
+function move() {
+    //disable the button while animation is running
+    document.getElementById('MIT_path').disabled = true;
+
+    if (counter >= busStops.length) {
+        // animation finished
+        document.getElementById('MIT_path').disabled = false;
+        return;
+    }
+
+    marker.setLngLat(busStops[counter]);
+    counter++;
+
+    // schedule next stop
+    timerId = setTimeout(move, 500);
 }
