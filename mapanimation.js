@@ -1,4 +1,7 @@
 mapboxgl.accessToken = typeof MAPBOX_TOKEN !== 'undefined' ? MAPBOX_TOKEN : '';
+if (!mapboxgl.accessToken) {
+    alert('Mapbox token missing. Please provide MAPBOX_TOKEN in config.js');
+}
 
 //Generate the map
 let map = new mapboxgl.Map({
@@ -38,7 +41,8 @@ if (speedInput && speedValue) {
 }
 //Current coordinates
 // TODO: replace with api data
-let busStops = [
+// Default set of stops in case the API request fails
+let busStopCoords = [
     [-71.093729, 42.359244],
     [-71.094915, 42.360175],
     [-71.0958, 42.360698],
@@ -53,11 +57,23 @@ let busStops = [
     [-71.118625, 42.374863],
 ];
 
+let stopInfo = [];
+
 async function loadBusStops() {
     try {
         const response = await fetch('https://api-v3.mbta.com/stops?filter[route]=1&sort=sequence');
         const data = await response.json();
-        busStops = data.data.map(stop => [parseFloat(stop.attributes.longitude), parseFloat(stop.attributes.latitude)]);
+        busStopCoords = data.data.map(stop => [
+            parseFloat(stop.attributes.longitude),
+            parseFloat(stop.attributes.latitude)
+        ]);
+        stopInfo = data.data.map(stop => ({
+            name: stop.attributes.name,
+            coords: [
+                parseFloat(stop.attributes.longitude),
+                parseFloat(stop.attributes.latitude)
+            ]
+        }));
     } catch (err) {
         console.error('Failed to fetch bus stops', err);
     }
@@ -72,7 +88,7 @@ map.on('load', async () => {
             properties: {},
             geometry: {
                 type: 'LineString',
-                coordinates: busStops
+                coordinates: busStopCoords
             }
         }
     });
@@ -89,6 +105,13 @@ map.on('load', async () => {
             'line-width': 4
         }
     });
+
+    stopInfo.forEach(stop => {
+        new mapboxgl.Marker({color: '#ff0000'})
+            .setLngLat(stop.coords)
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(stop.name))
+            .addTo(map);
+    });
 });
 
 
@@ -103,7 +126,8 @@ function reset() {
     counter = 0;
     progress = 0;
     paused = false;
-    marker.setLngLat(busStops[counter]);
+    marker.setLngLat(busStopCoords[counter]);
+    map.flyTo({ center: busStopCoords[counter], zoom: 14 });
     document.getElementById('toggle').textContent = 'Start';
 }
 
@@ -117,14 +141,14 @@ function animate() {
         animationId = null;
         return;
     }
-    if (counter >= busStops.length - 1) {
+    if (counter >= busStopCoords.length - 1) {
         document.getElementById('toggle').textContent = 'Start';
         animationId = null;
         return;
     }
 
-    const start = busStops[counter];
-    const end = busStops[counter + 1];
+    const start = busStopCoords[counter];
+    const end = busStopCoords[counter + 1];
     progress += getSpeed();
 
     if (progress >= 1) {
@@ -143,6 +167,7 @@ function toggleAnim() {
     if (!animationId) {
         paused = false;
         document.getElementById('toggle').textContent = 'Pause';
+        map.flyTo({ center: busStopCoords[counter], zoom: 14 });
         animationId = requestAnimationFrame(animate);
         return;
     }
@@ -150,9 +175,28 @@ function toggleAnim() {
     if (paused) {
         paused = false;
         document.getElementById('toggle').textContent = 'Pause';
+        map.flyTo({ center: busStopCoords[counter], zoom: 14 });
         animationId = requestAnimationFrame(animate);
     } else {
         paused = true;
         document.getElementById('toggle').textContent = 'Resume';
+    }
+}
+
+async function updateLiveLocation() {
+    try {
+        const response = await fetch('https://api-v3.mbta.com/vehicles?filter[route]=1');
+        const data = await response.json();
+        if (data.data && data.data.length > 0) {
+            const vehicle = data.data[0];
+            const coords = [
+                parseFloat(vehicle.attributes.longitude),
+                parseFloat(vehicle.attributes.latitude)
+            ];
+            marker.setLngLat(coords);
+            map.flyTo({ center: coords });
+        }
+    } catch (err) {
+        console.error('Failed to fetch bus location', err);
     }
 }
