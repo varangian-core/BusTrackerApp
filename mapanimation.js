@@ -1,4 +1,4 @@
-mapboxgl.accessToken = 'pk.eyJ1IjoidmlrdG9ybTE4MSIsImEiOiJjbDBtdWI3b3IxYWNuM2xvYWJzNzQyeTkyIn0.eXFuDCWOigRsdOARXQZZ6w';
+mapboxgl.accessToken = typeof MAPBOX_TOKEN !== 'undefined' ? MAPBOX_TOKEN : '';
 
 //Generate the map
 let map = new mapboxgl.Map({
@@ -16,6 +16,15 @@ let animationId = null;
 let paused = false;
 let progress = 0;
 
+const speedInput = document.getElementById('speed');
+const speedValue = document.getElementById('speed-value');
+if (speedInput && speedValue) {
+    speedValue.textContent = speedInput.value;
+    speedInput.addEventListener('input', () => {
+        speedValue.textContent = speedInput.value;
+    });
+}
+
 
 //Layer elements
     const layerList = document.getElementById('menu');
@@ -29,7 +38,7 @@ let progress = 0;
 }
 //Current coordinates
 // TODO: replace with api data
-const busStops = [
+let busStops = [
     [-71.093729, 42.359244],
     [-71.094915, 42.360175],
     [-71.0958, 42.360698],
@@ -44,7 +53,18 @@ const busStops = [
     [-71.118625, 42.374863],
 ];
 
-map.on('load', () => {
+async function loadBusStops() {
+    try {
+        const response = await fetch('https://api-v3.mbta.com/stops?filter[route]=1&sort=sequence');
+        const data = await response.json();
+        busStops = data.data.map(stop => [parseFloat(stop.attributes.longitude), parseFloat(stop.attributes.latitude)]);
+    } catch (err) {
+        console.error('Failed to fetch bus stops', err);
+    }
+}
+
+map.on('load', async () => {
+    await loadBusStops();
     map.addSource('route', {
         type: 'geojson',
         data: {
@@ -84,7 +104,7 @@ function reset() {
     progress = 0;
     paused = false;
     marker.setLngLat(busStops[counter]);
-    document.getElementById('MIT_path').disabled = false;
+    document.getElementById('toggle').textContent = 'Start';
 }
 
 function getSpeed() {
@@ -98,7 +118,7 @@ function animate() {
         return;
     }
     if (counter >= busStops.length - 1) {
-        document.getElementById('MIT_path').disabled = false;
+        document.getElementById('toggle').textContent = 'Start';
         animationId = null;
         return;
     }
@@ -119,14 +139,20 @@ function animate() {
     animationId = requestAnimationFrame(animate);
 }
 
-function move() {
-    document.getElementById('MIT_path').disabled = true;
-    paused = false;
+function toggleAnim() {
     if (!animationId) {
+        paused = false;
+        document.getElementById('toggle').textContent = 'Pause';
         animationId = requestAnimationFrame(animate);
+        return;
     }
-}
 
-function pauseAnim() {
-    paused = true;
+    if (paused) {
+        paused = false;
+        document.getElementById('toggle').textContent = 'Pause';
+        animationId = requestAnimationFrame(animate);
+    } else {
+        paused = true;
+        document.getElementById('toggle').textContent = 'Resume';
+    }
 }
