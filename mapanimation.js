@@ -1,8 +1,4 @@
-mapboxgl.accessToken = typeof MAPBOX_TOKEN !== 'undefined' ? MAPBOX_TOKEN : '';
-if (!mapboxgl.accessToken) {
-    alert('Mapbox token missing. Please provide MAPBOX_TOKEN in config.js');
-}
-
+mapboxgl.accessToken = "pk.eyJ1IjoidmlrdG9ybTE4MSIsImEiOiJjbDBtdWI3b3IxYWNuM2xvYWJzNzQyeTkyIn0.eXFuDCWOigRsdOARXQZZ6w";
 //Generate the map
 let map = new mapboxgl.Map({
     container: 'map',

@@ -14,10 +14,10 @@ vehicles API.
 
 ### How to Run
 
-Clone this repository and run `index.html`. Before running, copy `config.sample.js`
-to `config.js` and replace the placeholder token with your own Mapbox token.
-The page will fetch live bus stop data from the MBTA API when the map loads.
-If no token is provided, a dialog will notify you that the map cannot load.
+Clone this repository and open `index.html` in your browser. For convenience the
+Mapbox access token is embedded directly in `mapanimation.js`, so no additional
+configuration is needed. The page will fetch live bus stop data from the MBTA
+API when the map loads.
 
 ### Roadmap to Future Improvements
 This application will likely be restructured as a component for React App.
